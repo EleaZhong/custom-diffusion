@@ -10,6 +10,7 @@ sys.path.append('./')
 import torch
 from diffusers import StableDiffusionPipeline
 from src import diffuser_training 
+from PIL import Image
 
 
 def sample(ckpt, delta_ckpt, from_file, prompt, freeze_model):
@@ -17,14 +18,15 @@ def sample(ckpt, delta_ckpt, from_file, prompt, freeze_model):
     pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16).to("cuda")
 
     if delta_ckpt is not None:
-        diffuser_training.load_model(pipe.text_encoder, pipe.tokenizer, pipe.unet, delta_ckpt, '<new1>', freeze_model)
+        diffuser_training.load_model(pipe.text_encoder, pipe.tokenizer, pipe.unet, delta_ckpt, freeze_model)
 
     if prompt is not None:
         images = pipe([prompt]*5, num_inference_steps=200, guidance_scale=6., eta=1.).images
         images = np.hstack([np.array(x) for x in images])
-        plt.imshow(images)
-        plt.axis("off")
-        plt.savefig(f'{os.path.dirname(delta_ckpt)}/{prompt}.png', bbox_inches='tight')
+        if delta_ckpt:
+            Image.fromarray(images).save(f'{os.path.dirname(delta_ckpt)}/{prompt}.png')
+        else:
+            Image.fromarray(images).save(f'{prompt}.png')
     else:
         print(f"reading prompts from {from_file}")
         with open(from_file, "r") as f:

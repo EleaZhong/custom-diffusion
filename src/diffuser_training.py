@@ -334,12 +334,14 @@ def save_progress(text_encoder, unet, modifier_token_id, accelerator, args, save
     torch.save(delta_dict, save_path)
 
 
-def load_model(text_encoder, tokenizer, unet, save_path, modifier_token, freeze_model='crossattn_kv'):
+def load_model(text_encoder, tokenizer, unet, save_path, freeze_model='crossattn_kv'):
     logger.info("loading embeddings")
     st = torch.load(save_path)
     if 'text_encoder' in st:
         text_encoder.load_state_dict(st['text_encoder'])
-    if modifier_token in st:
+    for modifier_token in st.keys():
+        if modifier_token=="unet" or modifier_token=="text_encoder":
+            continue
         _ = tokenizer.add_tokens(modifier_token)
         modifier_token_id = tokenizer.convert_tokens_to_ids(modifier_token)
         # Resize the token embeddings as we are adding new special tokens to the tokenizer
